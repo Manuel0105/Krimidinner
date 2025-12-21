@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zirkus Map - Gold Edition V4 (Full Content)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-dark: #1a1612;
+      --bg-panel: #26201a;
+      --accent-gold: #c9a962;
+      --accent-red: #8b2635;
+      --text-light: #e8e0d4;
+      --text-muted: #9a8f82;
+      --status-clear: #4a6fa5;   
+      --status-covered: #d4a017; 
+      --status-blocked: #a83232; 
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    /* --- GOLDENER CURSOR --- */
+    body {
+      font-family: 'Crimson Text', serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 3.2L16.8 8.6L12.5 10.9L17.8 19.3L15.3 20.8L10 12.4L5.5 15.8V3.2Z" fill="%23c9a962" stroke="black" stroke-width="1.5"/></svg>') 0 0, auto;
+    }
+
+    /* Klickbare Elemente */
+    button, input, .toggle-label, .point-container, .caravan {
+        cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 2L18 8L13 10L18 18L15 20L10 12L5 16V2Z" fill="%23c9a962" stroke="%23ffffff" stroke-width="1.5"/></svg>') 0 0, pointer;
+    }
+
+    /* MAGIC PARTICLES */
+    #particleCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* --- HEADER --- */
+    header {
+      padding: 0.8rem 1.5rem;
+      background: linear-gradient(180deg, #2d2520 0%, var(--bg-dark) 100%);
+      border-bottom: 2px solid var(--accent-gold);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      color: var(--accent-gold);
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .controls { display: flex; gap: 1.5rem; align-items: center; }
+    
+    .toggle-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .toggle-label:hover { color: var(--text-light); }
+    input[type="checkbox"] { accent-color: var(--accent-gold); transform: scale(1.2); }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--accent-gold);
+      color: var(--accent-gold);
+      padding: 0.3rem 0.8rem;
+      font-family: 'Cinzel', serif;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+      border-radius: 2px;
+    }
+    .btn-reset:hover { background: var(--accent-gold); color: var(--bg-dark); }
+
+    /* --- LAYOUT --- */
+    .layout {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+      position: relative;
+    }
+
+    /* --- MAP AREA --- */
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #2d2520 0%, #15120f 100%);
+      overflow: hidden;
+      user-select: none;
+    }
+    
+    .map-wrapper::before {
+      content:''; position:absolute; inset:0;
+      background-image: 
+        linear-gradient(rgba(201,169,98,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,169,98,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    svg.map-svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* WEGE */
+    .path-line { stroke: rgba(201, 169, 98, 0.15); stroke-width: 6; stroke-linecap: round; fill: none; }
+    .path-line-overlay { stroke: rgba(0, 0, 0, 0.4); stroke-width: 2; fill: none; }
+
+    /* ROUTEN STYLES */
+    .route-line-fast {
+      stroke: var(--accent-gold);
+      stroke-width: 4; stroke-linecap: round; fill: none;
+      filter: drop-shadow(0 0 5px var(--accent-gold));
+      stroke-dasharray: 10; animation: dashMove 1s linear infinite;
+    }
+    .route-line-secret {
+      stroke: var(--accent-red);
+      stroke-width: 3; stroke-linecap: round; fill: none;
+      stroke-dasharray: 5 5; opacity: 0.8;
+      filter: drop-shadow(0 0 3px black); animation: dashMoveReverse 2s linear infinite;
+    }
+    .route-line-multi {
+        stroke: #fff; stroke-width: 3; stroke-dasharray: 0;
+        filter: drop-shadow(0 0 5px #fff); opacity: 0.7;
+    }
+    @keyframes dashMove { to { stroke-dashoffset: -20; } }
+    @keyframes dashMoveReverse { to { stroke-dashoffset: 20; } }
+
+    /* ANALYSE LINIEN */
+    .line-air { stroke: var(--accent-gold); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.4; }
+    .line-sight { stroke-width: 3; stroke-linecap: round; opacity: 0.9; filter: drop-shadow(0 0 2px rgba(0,0,0,1)); }
+    .line-sight.clear { stroke: var(--status-clear); }
+    .line-sight.covered { stroke: var(--status-covered); stroke-dasharray: 8 2; }
+    .line-sight.blocked { stroke: var(--status-blocked); stroke-dasharray: 2 4; }
+
+    .obstacle {
+      position: absolute; border: 1px solid rgba(201,169,98,0.1);
+      background: rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; pointer-events: none;
+    }
+    
+    /* PUNKTE */
+    .point-container {
+      position: absolute; transform: translate(-50%, -50%); z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 60px; height: 60px;
+    }
+    .point-container[data-id="kreuzung"] .point-marker {
+      width: 10px; height: 10px; border-radius: 50%; transform: none; background: #444; border-color: #666;
+    }
+    .point-container[data-id="kreuzung"] .point-label { font-size: 0.6rem; opacity: 0.7; }
+
+    .point-marker {
+      width: 14px; height: 14px; background: var(--bg-dark);
+      border: 2px solid var(--accent-gold); transform: rotate(45deg);
+      box-shadow: 0 0 10px rgba(0,0,0,0.8); transition: all 0.2s ease; margin-bottom: 6px;
+    }
+    .point-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);
+      background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .point-container:hover .point-marker { background: var(--accent-gold); transform: rotate(45deg) scale(1.3); }
+    .point-container:hover .point-label { color: var(--text-light); border-color: rgba(201,169,98,0.3); background: rgba(0,0,0,0.9); }
+    .point-container.selected .point-marker {
+      background: var(--accent-red); border-color: var(--text-light);
+      transform: rotate(45deg) scale(1.2); box-shadow: 0 0 10px var(--accent-red);
+    }
+    .point-container.multi-selected .point-marker { background: #fff; box-shadow: 0 0 10px #fff; }
+    .point-container.multi-selected .point-label { color: #fff; }
+    .point-badge {
+        position: absolute; top: -5px; right: 15px; background: var(--accent-red); color: white;
+        font-family: 'JetBrains Mono'; font-size: 0.6rem; width: 16px; height: 16px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; box-shadow: 1px 1px 3px black;
+    }
+
+    /* ZOOM OVERLAY */
+    .zoom-overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+      width: 95%; height: 95%; background: rgba(26, 22, 18, 0.98); border: 2px solid var(--accent-gold);
+      box-shadow: 0 0 80px rgba(0,0,0,0.9); z-index: 100; opacity: 0; pointer-events: none;
+      transition: all 0.3s ease; display: flex; flex-direction: column; padding: 1rem;
+    }
+    .zoom-overlay.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+    .zoom-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--accent-gold); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+    .zoom-title { font-family: 'Cinzel', serif; color: var(--accent-gold); font-size: 1.2rem; }
+    .close-zoom { background: none; border: none; color: var(--accent-red); font-size: 1.5rem; }
+    .zoom-content-area { flex: 1; position: relative; background: repeating-linear-gradient(45deg, #15120f 0, #15120f 10px, #1a1612 10px, #1a1612 20px); border: 1px solid rgba(255,255,255,0.1); overflow: visible; display: flex; align-items: center; justify-content: center; }
+
+    /* TOOLTIPS & CARAVAN (Original Styles Restored) */
+    .caravan { position: absolute; background: #3d342b; border: 1px solid var(--text-muted); color: var(--text-light); display: flex; justify-content: center; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; transition: transform 0.2s; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); cursor: help; }
+    .caravan:hover { background: var(--accent-gold); color: #000; transform: scale(1.05); z-index: 10; }
+    .cv-large { width: 140px; height: 70px; border: 2px solid var(--accent-gold); } 
+    .cv-std { width: 70px; height: 40px; }
+    .cv-tiny { width: 40px; height: 30px; } 
+    .cv-tooltip { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: black; color: white; padding: 10px; font-size: 0.75rem; border-radius: 4px; width: max-content; max-width: 250px; white-space: normal; opacity: 0; pointer-events: none; transition: opacity 0.2s; border: 1px solid var(--accent-gold); z-index: 2000; text-align: left; line-height: 1.4; box-shadow: 0 5px 20px rgba(0,0,0,0.8); }
+    .caravan:hover .cv-tooltip { opacity: 1; }
+    .tt-down { top: 110%; bottom: auto; }
+    .tt-left { right: 110%; left: auto; top: 50%; transform: translateY(-50%); bottom: auto; }
+    .tt-right { left: 110%; top: 50%; transform: translateY(-50%); bottom: auto; }
+    .tt-in-bottom-right { top: 100%; left: 0; transform: none; bottom: auto; }
+
+    /* SVG MANEGE */
+    .svg-detail-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    .detail-svg { width: 100%; height: 100%; max-width: 800px; max-height: 500px; overflow: visible; }
+    .svg-door-label { font-family: 'JetBrains Mono', monospace; fill: #aaa; text-anchor: middle; font-size: 11px; font-weight: bold; }
+    /* Original SVG classes */
+    .svg-wall { stroke: #555; stroke-width: 2; fill: none; }
+    .svg-floor { fill: rgba(30, 25, 20, 0.8); stroke: var(--accent-gold); stroke-width: 4; }
+    .svg-tribune { fill: repeating-linear-gradient(45deg, #222, #222 5px, #333 5px, #333 10px); stroke: #666; stroke-width: 2; }
+    .svg-ring { fill: none; stroke: var(--accent-red); stroke-width: 3; stroke-dasharray: 5,5; }
+    .svg-office { fill: rgba(139, 38, 53, 0.2); stroke: var(--accent-red); stroke-width: 2; }
+    .svg-text { font-family: 'Cinzel', serif; fill: var(--accent-gold); text-anchor: middle; font-size: 14px; }
+    .svg-text-small { font-family: 'JetBrains Mono', monospace; fill: #888; text-anchor: middle; font-size: 10px; }
+
+
+    /* CELLAR STYLES */
+    .cellar-container { width: 80%; max-width: 700px; display: flex; flex-direction: column; gap: 20px; }
+    .cellar-box { padding: 30px; border: 2px solid #444; background: #111; position: relative; display: flex; flex-direction: column; justify-content: center; }
+    .cellar-title { color: var(--accent-red); font-family: 'Cinzel', serif; font-size: 1.2rem; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    .cellar-desc { color: #aaa; font-size: 0.9rem; font-family: 'Crimson Text', serif; line-height: 1.5; }
+
+    /* --- SIDEBAR --- */
+    .sidebar { width: 350px; background: var(--bg-panel); border-left: 2px solid var(--accent-gold); display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.5); overflow-y: auto; }
+    .sidebar-content { padding: 1.2rem; }
+    .section-title { font-family: 'Cinzel', serif; color: var(--text-light); font-size: 1rem; border-bottom: 1px solid rgba(201,169,98,0.3); padding-bottom: 0.5rem; margin-bottom: 1rem; margin-top: 1.5rem; }
+    .section-title:first-child { margin-top: 0; }
+    .status-card { background: rgba(0,0,0,0.3); border: 1px solid var(--accent-gold); padding: 1rem; border-radius: 4px; margin-bottom: 1rem; display: none; }
+    .status-card.active { display: block; }
+    .info-placeholder { display: none; animation: fadeIn 0.3s ease; }
+    .info-placeholder.visible { display: block; }
+    .detail-item { margin-bottom: 1rem; }
+    .detail-label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--accent-gold); text-transform: uppercase; display: block; margin-bottom: 0.3rem; }
+    .detail-text { font-family: 'Crimson Text', serif; font-size: 0.95rem; color: var(--text-light); line-height: 1.4; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; border-radius: 2px; color: #fff; text-transform: uppercase; margin-top: 4px; }
+    .badge.clear { background: var(--status-clear); }
+    .badge.covered { background: var(--status-covered); color: #1a1612; }
+    .badge.blocked { background: var(--status-blocked); }
+    .waypoint-list { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #888; margin-top: 4px; line-height: 1.3; border-left: 1px solid #444; padding-left: 6px; }
+    .action-btn { width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--accent-gold); color: var(--accent-gold); font-family: 'Cinzel',serif; cursor: pointer; transition: 0.2s; margin-bottom: 10px; font-size: 0.9rem; letter-spacing: 1px; }
+    .action-btn:hover { background: var(--accent-gold); color: var(--bg-dark); }
+    
+    /* SLIDER STYLE */
+    .slider-container { background: rgba(255,255,255,0.05); padding:10px; border-radius:4px; margin-bottom:20px; border:1px solid #444; }
+    input[type=range] { width: 100%; margin: 8px 0; accent-color: var(--accent-gold); cursor: pointer; }
+    #speedLabel { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-light); text-align: center; }
+
+    .log-list { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color:#ccc; list-style: none; margin-top:10px; }
+    .log-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .log-time { color: var(--accent-gold); font-weight:bold; }
+    .log-name { color: #fff; }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+  </style>
+</head>
+<body>
+
+  <canvas id="particleCanvas"></canvas>
+
+  <header>
+    <h1>Zirkusgelände <span style="font-size:0.6em; opacity:0.7;">| Navigation</span></h1>
+    <div class="controls">
+      <label class="toggle-label">
+        <input type="checkbox" id="checkSight" checked>
+        Sichtlinien
+      </label>
+      <label class="toggle-label" style="color:var(--accent-gold);">
+        <input type="checkbox" id="checkRoute">
+        Analyse A&rarr;B
+      </label>
+      <label class="toggle-label" style="color:#fff; border:1px solid #555; padding:2px 8px; border-radius:4px;">
+        <input type="checkbox" id="checkMultiRoute">
+        Eigene Route
+      </label>
+      <button class="btn-reset" onclick="resetMap()">Reset</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    
+    <div id="zoomOverlay" class="zoom-overlay">
+      <div class="zoom-header">
+        <div class="zoom-title" id="zoomTitle">Detailansicht</div>
+        <button class="close-zoom" onclick="closeZoom()">×</button>
+      </div>
+      
+      <div class="zoom-content-area" id="zoomContent">
+        
+        <div id="scene-wohnwagen" style="display:none; width:100%; height:100%; position:relative;">
+            <div style="position:absolute; left:10px; top:50%; transform:translateY(-50%) rotate(-90deg); color:#666; font-size:0.7rem; letter-spacing:2px;">
+            &larr; RICHTUNG PARKPLATZ
+            </div>
+            
+            <div class="caravan cv-std" style="left: 10%; top: 40%; transform:rotate(-5deg);">Nr. 89<div class="cv-tooltip"><b style="color:var(--accent-gold)">DIE "GARAGE"</b><br>Kaum bewohnt. Dient primär als Werkstatt für "Percussive Maintenance" (Dagegentreten).<br><i>Fundstücke: Holzspäne, TÜV-Mängelberichte, eine böse guckende Puppe.</i></div></div>
+
+            <div class="caravan cv-std" style="left: 25%; top: 20%; transform:rotate(5deg);">Nr. 28
+                <div class="cv-tooltip tt-in-bottom-right"><b style="color:var(--accent-gold)">DAS LAGER</b><br>Mehr Ausrüstung als Wohnraum. Hier riecht es nach Kettenfett und grünem Red Bull.<br><i>Fundstücke: Lederjacke, Klettergurte, Energy-Drink-Pyramide.</i></div>
+            </div>
+
+            <div class="caravan cv-tiny" style="left: 28%; top: 60%;">Nr. 4<div class="cv-tooltip tt-right"><b style="color:var(--accent-gold)">DER "SERVERRAUM"</b><br>Eigentlich eine Besenkammer. Fenster sind abgeklebt. Es brummt leise.<br><i>Fundstücke: Kabelsalat, LED-Streifen ohne Funktion, Pizza-Kartons.</i></div></div>
+
+            <div class="caravan cv-large" style="left: 45%; top: 30%;">Nr. 3379
+                <div class="cv-tooltip tt-down"><b style="color:var(--accent-gold)">DER PALAST</b><br>Zweiklassen-Gesellschaft auf Rädern.<br>Vorne: Das Büro für "Investments" (Hütchenspieler).<br>Hinten: Die Festung der Chefin.<br><i>Fundstücke: Plüsch-Hausschuhe (Türvorleger), eine Reitgerte, gefälschte Bilanzen.</i></div>
+            </div>
+
+            <div class="caravan cv-std" style="left: 60%; top: 70%; transform:rotate(-10deg);">Nr. 77<div class="cv-tooltip tt-left"><b style="color:var(--accent-gold)">DER BUNKER</b><br>Steht verdächtig abseits. Fenster sind mit Alufolie isoliert.<br><i>Fundstücke: Frequenz-Messgeräte (aus Pappe), Vorräte für den Weltuntergang, KEIN WLAN.</i></div></div>
+
+            <div class="caravan cv-std" style="left: 75%; top: 20%;">Nr. 1<div class="cv-tooltip tt-left"><b style="color:var(--accent-gold)">DAS ARCHIV</b><br>Halb Luxus, halb Müllhalde. Man hört ständig jemanden Selbstgespräche führen.<br><i>Fundstücke: Eine riesige Tasche (Schwarzes Loch), Vape-Zubehör, gestohlene Hinweisschilder.</i></div></div>
+
+            <div class="caravan cv-std" style="left: 80%; top: 55%; border-color:#d4a017;">Nr. 64<div class="cv-tooltip tt-left"><b style="color:var(--accent-gold)">DIE SCHLAFHÖHLE</b><br>Man hört Schnarchen durch die Wände. Tür ist immer offen.<br><i>Fundstücke: Ein Helm (auf dem Kissen), Pfirsich-Eistee Flaschen, ein Nagelbrett als Lattenrost.</i></div></div>
+
+            <div class="caravan cv-std" style="left: 82%; top: 68%; border-color:#d4a017;">Nr. 65<div class="cv-tooltip tt-left"><b style="color:var(--accent-gold)">DAS PUPPENHAUS</b><br>Klebt förmlich an Nr. 64. Überall Deko, die niemand braucht.<br><i>Fundstücke: Unfertige Häkelprojekte, Gummibärchen-Vorrat, ein riesiger Aufziehschlüssel.</i></div></div>
+        </div>
+
+        <div id="scene-manege" style="display:none; width:100%; height:100%;">
+            <div class="svg-detail-container">
+              <svg class="detail-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+                
+                <defs>
+                  <pattern id="seatPattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="8" stroke="#333" stroke-width="2" />
+                  </pattern>
+                </defs>
+
+                <rect x="50" y="50" width="700" height="400" rx="10" fill="rgba(20, 20, 20, 0.9)" stroke="#c9a962" stroke-width="3" />
+
+                <rect x="350" y="40" width="100" height="20" fill="#1a1612" /> 
+                <path d="M 350,50 L 350,30 M 450,50 L 450,30" stroke="#c9a962" stroke-width="2"/>
+                <text x="400" y="45" class="svg-door-label">ZUGANG BACKSTAGE</text>
+                
+                <rect x="350" y="440" width="100" height="20" fill="#1a1612" />
+                <path d="M 350,450 L 350,470 M 450,450 L 450,470" stroke="#c9a962" stroke-width="2"/>
+                <text x="400" y="465" class="svg-door-label">EINGANG</text>
+
+                <rect x="40" y="230" width="20" height="40" fill="#1a1612" />
+                <path d="M 50,230 L 30,230 M 50,270 L 30,270" stroke="#c9a962" stroke-width="2"/>
+                <text x="35" y="255" class="svg-door-label" text-anchor="end" style="font-size:9px;">EXIT</text>
+
+                <rect x="740" y="230" width="20" height="40" fill="#1a1612" />
+                <path d="M 750,230 L 770,230 M 750,270 L 770,270" stroke="#c9a962" stroke-width="2"/>
+                <text x="765" y="255" class="svg-door-label" text-anchor="start" style="font-size:9px;">EXIT</text>
+
+                <circle cx="400" cy="250" r="90" fill="none" stroke="#8b2635" stroke-width="3" stroke-dasharray="8,4" />
+                <text x="400" y="255" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="20">MANEGE</text>
+
+                <path d="M 120,120 H 220 Q 280,250 220,380 H 120 V 120 Z" 
+                      fill="url(#seatPattern)" stroke="#555" stroke-width="2" />
+                <text x="170" y="250" fill="#888" transform="rotate(-90, 170, 250)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
+
+                <path d="M 680,120 H 580 Q 520,220 580,320 H 680 V 120 Z" 
+                      fill="url(#seatPattern)" stroke="#555" stroke-width="2" />
+                <text x="630" y="220" fill="#888" transform="rotate(90, 630, 220)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
+
+                <rect x="620" y="350" width="110" height="90" fill="rgba(139, 38, 53, 0.1)" stroke="#8b2635" stroke-width="2" />
+                <text x="675" y="380" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="12" font-weight="bold">BÜRO</text>
+                <text x="675" y="395" fill="#888" text-anchor="middle" font-family="JetBrains Mono" font-size="9">VERRAMMELT</text>
+
+              </svg>
+            </div>
+        </div>
+
+        <div id="scene-keller" style="display:none; width:100%; height:100%; align-items: center; justify-content: center;">
+            <div class="cellar-container">
+                <div class="cellar-box" style="border-color:#666;">
+                    <div class="cellar-title">EBENE -1: MASCHINENRAUM</div>
+                    <div class="cellar-desc">
+                        Zugang über versteckte Bodenluke im Backstage.<br>
+                        Hier laufen alle Kabel zusammen. Lautes, rhythmisches Brummen der Hydraulik.<br>
+                        Es ist heiß, staubig und eng. Perfekt um Gespräche von oben zu belauschen.
+                    </div>
+                </div>
+                <div class="cellar-box" style="border-color:var(--accent-red); background:#080505;">
+                    <div class="cellar-title">EBENE -2: FUNDAMENT</div>
+                    <div class="cellar-desc">
+                        Frisch betonierter Boden. Eine Baustelle, die nie fertig wird.<br>
+                        Betreten streng verboten. Hier riecht es nach feuchter Erde und Geheimnissen.<br>
+                        Irgendwas stimmt hier nicht mit den Proportionen...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="map-wrapper" id="mapContainer">
+      <svg class="map-svg" id="svgLayer">
+        <g id="pathsLayer"></g>
+        <g id="routeLayer"></g> 
+        <g id="analysisLayer"></g>
+      </svg>
+      <div id="obstaclesLayer"></div>
+      <div id="pointsLayer"></div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="sidebar-content">
+        
+        <h2 class="section-title">Analyse & Route</h2>
+        <div id="instructionText" style="color:var(--accent-gold); font-size:1.1rem; font-family:'Cinzel',serif;">Bitte Ort auswählen...</div>
+
+        <div class="slider-container">
+            <label class="detail-label" style="text-align:center;">Geschwindigkeit</label>
+            <input type="range" id="speedSlider" min="0.5" max="5.0" step="0.1" value="1.4">
+            <div id="speedLabel">Gehen (1.4 m/s)</div>
+        </div>
+
+        <div id="multiRouteBox" class="status-card" style="border-color: #fff; background: rgba(255,255,255,0.05);">
+            <div style="margin-bottom:0.8rem; border-bottom:1px solid #555; padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:#fff;">Route Logbuch</span>
+                <span id="multiDistance" style="color:#fff; font-size:0.9rem; font-weight:bold;">0 m</span>
+            </div>
+            
+            <ul id="multiLogList" class="log-list"></ul>
+
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <button class="action-btn" style="border-color:#555; font-size:0.7rem; padding:8px;" onclick="undoLastMultiPoint()">&#8630; Letzten Schritt löschen</button>
+            </div>
+        </div>
+
+        <div id="resultBox" class="status-card">
+          <div style="margin-bottom:0.8rem; border-bottom:1px solid #444; padding-bottom:8px;">
+            <span class="detail-label" style="color:#9a8f82;">Luftlinie (Direkt)</span>
+            <div id="resDistance" style="color:var(--text-light); font-size:0.9rem;">0 m</div>
+          </div>
+
+          <div style="margin-bottom:0.8rem;">
+            <span class="detail-label" style="color:#9a8f82;">Verbindung</span>
+            <div id="resConnection" style="color:var(--accent-gold); font-family:'Cinzel',serif; font-size:1.1rem;">A &rarr; B</div>
+          </div>
+          
+          <div id="routeInfoBlock" style="display:none; margin-bottom:1rem; border-top:1px dashed #444; padding-top:10px;">
+             <span class="detail-label" style="color:#9a8f82;">Routenoptionen (nach Tempo)</span>
+             <div style="margin-bottom:12px;">
+               <div style="font-size:0.8rem; color:var(--accent-gold);">● SCHNELL</div>
+               <div style="font-family:'JetBrains Mono'; font-size:0.85rem; color:#fff; margin-left:10px;">
+                 Zeit: <span id="timeFast"></span>
+               </div>
+               <div id="wpFast" class="waypoint-list"></div>
+             </div>
+             <div>
+               <div style="font-size:0.8rem; color:var(--accent-red);">● PRIVAT</div>
+               <div style="font-family:'JetBrains Mono'; font-size:0.85rem; color:#fff; margin-left:10px;">
+                 Zeit: <span id="timeSec"></span>
+               </div>
+               <div id="wpSec" class="waypoint-list"></div>
+             </div>
+          </div>
+
+          <div id="sightRow">
+            <span class="detail-label" style="color:#9a8f82;">Sichtverbindung</span>
+            <div>
+              <span id="resSightBadge" class="badge">Prüfe...</span>
+              <div id="resSightReason" style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="locationInfoBox" class="info-placeholder">
+          <h2 class="section-title" id="locTitle" style="color:var(--accent-gold); margin-top:2rem;">Ort Details</h2>
+          <div class="detail-item"><span class="detail-label">Story & Atmosphäre</span><div class="detail-text" id="locDesc"></div></div>
+          <div class="detail-item"><span class="detail-label">Interessante Fundstücke</span><div class="detail-text" id="locSpecial"></div></div>
+          <div class="detail-item"><span class="detail-label">Zugang & Verstecke</span><div class="detail-text" id="locHide"></div></div>
+          
+          <div id="zoomBtnContainer" style="display:none; margin-top:1rem;">
+            <button class="action-btn" onclick="openZoomCurrent()">DETAIL-KARTE ÖFFNEN</button>
+            <button id="btnKeller" class="action-btn" style="border-color:var(--accent-red); color:var(--accent-red); display:none;" onclick="openZoomKeller()">KELLER-ANSICHT ÖFFNEN</button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // --- SKALIERUNG & DATEN ---
+    const METERS_PER_UNIT = 7.1;
+    let currentSpeed = 1.4; // Default m/s
+
+    // ORIGINAL DATA RESTORED
+    const locations = [
+      { id:"parken", name:"Parken", x:15, y:85, desc: "Ein Friedhof für Träume und TÜV-Plaketten. Der Schotter ist so ölgetränkt, dass man hier nicht rauchen sollte. Valentins Carport steht hier wie ein Mahnmal des Egoismus: Das einzige Dach weit und breit.", special: "Kaputte Bremsleitungen, Zigarettenstummel (Marke 'Stress'), Ölflecken in Form von schlechten Omen.", hide: "Unter Autos (Vorsicht: Es tropft) oder im Schatten des Carports.", hasZoom:false },
+      { id:"wohnwagen", name:"Wohnwagen", x:50, y:85, desc: "Die 'Sardinenbüchsen-Allee'. Hier stapeln sich Neurosen auf engstem Raum. Die Wände sind so dünn, dass man hört, wenn der Nachbar seine Meinung ändert.", special: "Siehe Detailkarte für die Bewohner-Profile.", hide: "Unter den Wägen im Matsch.", hasZoom: true },
+      { id:"hinter", name:"Hintereingang", x:85, y:80, desc: "Der unglamouröse Hintern des Zirkus. Ein verrostetes Tor, das quietscht wie eine sterbende Katze. Hier wächst Unkraut über Dinge, die keiner sehen soll.", special: "Spuren von nächtlichen Drohnen-Lieferungen (in dieser Welt das Amazon-Prime), weggeworfene Aluhut-Reste.", hide: "Hinterm Müllcontainer-Zaun oder im hohen Brennnessel-Gestrüpp.", hasZoom:false },
+      { id:"kueche", name:"Küche", x:20, y:65, desc: "Die Edelstahl-Hölle. Es riecht penetrant nach altem Fett und verbranntem Zucker. Der 'Zucker-Zyklon' (Zuckerwattemaschine) hat ein Eigenleben und vibriert bedrohlich.", special: "Ein halb gegessener Döner, ein überhitzter Motor, klebrige Oberflächen.", hide: "Hinter der brummenden Zuckerwatte-Maschine.", hasZoom:false },
+      { id:"hof", name:"Hof", x:25, y:55, desc: "Das schlammige Herz der Finsternis. Ein Labyrinth aus Paletten, die irgendwann mal irgendwohin sollten. Wer hier stolpert, landet im Matsch oder in einer Intrige.", special: "Herrenlose Kisten mit Seriennummern, die Saphira noch nicht notiert hat.", hide: "Hinter wackeligen Kistenstapeln (Gute Sicht auf Dir.Wagen).", hasZoom:false },
+      { id:"dir", name:"Dir.Wagen", x:10, y:55, desc: "Der Elfenbeinturm auf Rädern. Samtvorhänge, dicke Teppiche und der Geruch von billigem Parfum, das teuer wirken soll. Valentins Reich.", special: "Ein verschlossener Safe, teure Deko, vertrauliche Akten. Das riesige Fenster ist praktisch eine Einladung für Spanner.", hide: "Unter dem massiven Eichenschreibtisch.", hasZoom:false },
+      { id:"riesen", name:"Riesenrad", x:60, y:60, desc: "Ein rostiges Denkmal der Fahrlässigkeit. Es dreht sich nur, wenn der Wind günstig steht oder man dagegen tritt. Jede Schraube ist ein Glücksspiel.", special: "Lockere Bolzen, eine vergessene Werkzeugkiste von Jasper.", hide: "In den schaukelnden Gondeln (Achtung: Seekrankheit).", hasZoom:false },
+      { id:"muell", name:"Müllplatz", x:85, y:60, desc: "Der ehrlichste Ort hier. Es stinkt zum Himmel nach Verwesung und geplatzten Träumen. Die Ratten hier sind die einzigen, die satt werden.", special: "Zerrissene Briefe, leere Flaschen (Pfirsich-Eistee & Alkohol), die 'Smaragd Banane'.", hide: "Hinter den Müllcontainern. Wenns hart auf hart kommt: IN den Containern (nur für Hartgesottene).", hasZoom:false },
+      { id:"foyer", name:"Foyer", x:50, y:45, desc: "Die Glitzer-Fassade. Kassenhäuschen mit vergilbten 'Ausverkauft'-Schildern, obwohl nie ausverkauft ist. Damians Jagdrevier.", special: "Gezinkte Karten, Hütchenspieler-Equipment, Zettel von Chantal.", hide: "Hinter dem engen Kassentresen.", hasZoom:false },
+      { id:"wc", name:"WC", x:70, y:45, desc: "Der Toilettenwagen des Grauens. Graffiti an den Wänden erzählen traurigere Geschichten als die Show. Es riecht nach Chemie und Verzweiflung.", special: "Tränen-Taschentücher. Was anderes findet man hier kaum.", hide: "Kabine 3 (die einzige, die abschließt).", hasZoom:false },
+      { id:"tech", name:"Tech-Zelt", x:30, y:35, desc: "Die Nerd-Höhle. Dunkel, warm, blinkende Lichter und das Summen überhitzter Server. Maliks Königreich, das er nie (naja, fast nie) verlässt.", special: "Ein illegaler Sehschlitz in der Plane (Richtung Direktion), leere Pizza-Kartons.", hide: "Zwischen den heißen Server-Racks.", hasZoom:false },
+      { id:"manege", name:"Manege", x:50, y:25, desc: "Das große Zelt. Abends Show, nachts bis früh morgens ein riesiges, hallendes Grab. Es riecht nach Sägespänen und Angstschweiß.", special: "Siehe Detailkarte (Eingänge, Büro). Extra Keller-Ansicht verfügbar!", hide: "Hinter dem schweren Samtvorhang.", hasZoom: true },
+      { id:"back", name:"Backstage", x:50, y:12, desc: "Das Chaos hinter dem Vorhang. Schminke, Pailletten und Hektik. Ein Minenfeld aus Requisiten.", special: "Potenzielle Mordwaffen (Seile, Stangen), Saphiras Tasche (wenn sie nicht da ist).", hide: "Zwischen den staubigen Kostümständern.", hasZoom:false },
+      { id:"kreuzung", name:"Wegkreuzung", x:50, y:60, desc: "Eine unscheinbare Gabelung im Matsch. Hier kreuzen sich Wege und Blicke. Strategisch wichtig, aber null Deckung.", special: "Fußspuren in alle Richtungen.", hide: "Keine Deckung. Du bist auf dem Präsentierteller.", hasZoom:false },
+    ];
+
+    const paths = [
+      ["parken", "kueche"], ["parken", "wohnwagen"], ["wohnwagen", "hinter"], ["wohnwagen", "hof"], ["wohnwagen", "kreuzung"],
+      ["kreuzung", "foyer"], ["kreuzung", "riesen"], ["kueche", "hof"], ["kueche", "dir"], ["dir", "hof"], ["hof", "tech"], 
+      ["tech", "manege"], ["tech", "foyer"], ["tech", "dir"], ["manege", "back"], ["manege", "foyer"],
+      ["foyer", "wc"], ["wc", "riesen"], ["wc", "muell"], ["riesen", "muell"], ["hinter", "muell"]
+    ];
+
+    const obstacles = [
+      {id:"man_obs", label:"Manege", type:"solid", x:40, y:15, w:20, h:20},
+      {id:"wag_obs", label:"Wohnwägen", type:"solid", x:40, y:75, w:20, h:20},
+      {id:"tech_obs", label:"Tech-Planen", type:"cover", x:25, y:30, w:10, h:10},
+      {id:"hof_obs", label:"Kistenstapel", type:"cover", x:32, y:52, w:6, h:6},
+      {id:"back_obs", label:"Backstage", type:"cover", x:45, y:5, w:10, h:10},
+    ];
+
+    // --- LOGIK & STATE ---
+    let state = { start: null, end: null, selectedZoomId: null, multiRoute: [] };
+    let graph = {};
+
+    const svgPaths = document.getElementById('pathsLayer');
+    const svgRoute = document.getElementById('routeLayer');
+    const svgAnalysis = document.getElementById('analysisLayer');
+    const boxEl = document.getElementById('resultBox');
+    const multiBoxEl = document.getElementById('multiRouteBox');
+    const multiLogList = document.getElementById('multiLogList');
+    const instrEl = document.getElementById('instructionText');
+    const infoPanel = document.getElementById('locationInfoBox');
+    const zoomOverlay = document.getElementById('zoomOverlay');
+    const zoomBtn = document.getElementById('zoomBtnContainer');
+    const routeInfoBlock = document.getElementById('routeInfoBlock');
+    
+    // Slider elements
+    const speedSlider = document.getElementById('speedSlider');
+    const speedLabel = document.getElementById('speedLabel');
+
+    // --- GOLD PARTICLE SYSTEM ---
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: 0, y: 0 };
+
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    document.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX; mouse.y = e.clientY;
+        if(Math.random() > 0.5) createParticle(e.clientX, e.clientY);
+    });
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.size = Math.random() * 2 + 0.5;
+            this.speedX = Math.random() * 1 - 0.5;
+            this.speedY = Math.random() * 1 + 0.5; 
+            this.color = `rgba(201, 169, 98, ${Math.random()})`;
+            this.life = 1.0;
+        }
+        update() {
+            this.x += this.speedX; this.y += this.speedY;
+            this.life -= 0.02;
+            if (this.size > 0.1) this.size -= 0.01;
+        }
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.life;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function createParticle(x, y) { particles.push(new Particle(x, y)); }
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
+            if (particles[i].life <= 0) { particles.splice(i, 1); i--; }
+        }
+        requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // --- MAP LOGIC ---
+
+    function init(){ buildGraph(); drawStaticPaths(); renderObstacles(); renderPoints(); updateSpeedText(1.4); }
+
+    function buildGraph(){
+      graph = {}; locations.forEach(l => graph[l.id] = []);
+      paths.forEach(pair => {
+        const p1 = locations.find(l=>l.id===pair[0]); const p2 = locations.find(l=>l.id===pair[1]);
+        if(p1 && p2){
+          const dx = p1.x - p2.x; const dy = p1.y - p2.y; const dist = Math.sqrt(dx*dx + dy*dy);
+          graph[p1.id].push({node: p2.id, weight: dist}); graph[p2.id].push({node: p1.id, weight: dist});
+        }
+      });
+    }
+
+    function drawStaticPaths(){
+      paths.forEach(pair => {
+        const p1 = locations.find(l => l.id === pair[0]); const p2 = locations.find(l => l.id === pair[1]);
+        if(p1 && p2){
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", p1.x + "%"); line.setAttribute("y1", p1.y + "%");
+          line.setAttribute("x2", p2.x + "%"); line.setAttribute("y2", p2.y + "%");
+          line.setAttribute("class", "path-line"); svgPaths.appendChild(line);
+          const outline = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          outline.setAttribute("x1", p1.x + "%"); outline.setAttribute("y1", p1.y + "%");
+          outline.setAttribute("x2", p2.x + "%"); outline.setAttribute("y2", p2.y + "%");
+          outline.setAttribute("class", "path-line-overlay"); svgPaths.appendChild(outline);
+        }
+      });
+    }
+
+    function renderObstacles(){
+      const container = document.getElementById('obstaclesLayer');
+      obstacles.forEach(ob => {
+        const el = document.createElement('div'); el.className = 'obstacle';
+        el.style.left = ob.x + '%'; el.style.top = ob.y + '%'; el.style.width = ob.w + '%'; el.style.height = ob.h + '%';
+        if(ob.type==='solid') el.style.background = 'rgba(0,0,0,0.3)';
+        container.appendChild(el);
+      });
+    }
+
+    function renderPoints(){
+      const container = document.getElementById('pointsLayer');
+      locations.forEach(loc => {
+        const wrapper = document.createElement('div'); wrapper.className = 'point-container';
+        wrapper.style.left = loc.x + '%'; wrapper.style.top = loc.y + '%'; wrapper.dataset.id = loc.id;
+        wrapper.onclick = (e) => handlePointClick(loc.id, e, wrapper);
+        const marker = document.createElement('div'); marker.className = 'point-marker'; wrapper.appendChild(marker);
+        const lbl = document.createElement('div'); lbl.className = 'point-label'; lbl.textContent = loc.name; wrapper.appendChild(lbl);
+        
+        const badge = document.createElement('div'); badge.className = 'point-badge'; 
+        badge.style.display = 'none'; wrapper.appendChild(badge);
+        container.appendChild(wrapper);
+      });
+    }
+
+    // --- INTERACTION ---
+    
+    // SLIDER EVENT
+    speedSlider.addEventListener('input', (e) => {
+        currentSpeed = parseFloat(e.target.value);
+        updateSpeedText(currentSpeed);
+        
+        // Recalculate Active Modes
+        if(document.getElementById('checkMultiRoute').checked){
+            updateMultiRoute();
+        } else if (state.start && state.end) {
+            calculateAndDraw(); // Refresh A-B calculations
+        }
+    });
+
+    function updateSpeedText(val){
+        let txt = "Gehen";
+        if(val < 0.8) txt = "Schleichen";
+        else if (val < 2.0) txt = "Gehen";
+        else if (val < 4.0) txt = "Joggen";
+        else txt = "Sprinten";
+        speedLabel.textContent = `${txt} (${val} m/s)`;
+    }
+
+    function handlePointClick(id, e, el){
+      e.stopPropagation(); 
+      showLocationDetails(id);
+
+      const isMulti = document.getElementById('checkMultiRoute').checked;
+
+      if(isMulti) {
+          state.multiRoute.push(id);
+          updateMultiRoute();
+          instrEl.innerHTML = "Route: " + state.multiRoute.length + " Wegpunkte.";
+      } else {
+          if(state.multiRoute.length > 0) resetMapOnly();
+
+          if(state.start && state.end) { resetMapOnly(); selectStart(id); } 
+          else if (!state.start) { selectStart(id); } 
+          else if (state.start && !state.end) { 
+              if(state.start === id) return; 
+              selectEnd(id); 
+          }
+          highlightPoint(id);
+      }
+    }
+
+    function undoLastMultiPoint(){
+        if(state.multiRoute.length > 0){
+            const removedId = state.multiRoute.pop();
+            updateMultiRoute();
+        }
+    }
+
+    function updateMultiRoute(){
+        svgRoute.innerHTML = ''; multiLogList.innerHTML = ''; 
+        document.querySelectorAll('.point-badge').forEach(b => b.style.display = 'none');
+        document.querySelectorAll('.point-container').forEach(p => p.classList.remove('multi-selected'));
+
+        if(state.multiRoute.length === 0) {
+            multiBoxEl.style.display = 'none'; document.getElementById('multiDistance').textContent = "0 m"; return;
+        }
+
+        multiBoxEl.style.display = 'block'; boxEl.classList.remove('active');
+
+        let totalDist = 0;
+        let cumulativeTime = 0; 
+
+        // 1. Render First Point
+        const startId = state.multiRoute[0];
+        const startLoc = locations.find(l => l.id === startId);
+        addLogItem(startLoc.name, 0, 0); 
+        highlightMultiPoint(startId, 1);
+
+        // 2. Loop
+        for(let i=0; i<state.multiRoute.length - 1; i++){
+            const p1 = state.multiRoute[i];
+            const p2 = state.multiRoute[i+1];
+            const loc2 = locations.find(l => l.id === p2);
+
+            const pathObj = dijkstra(p1, p2, []);
+            if(pathObj){
+                const segmentDist = pathObj.cost * METERS_PER_UNIT;
+                const segmentTime = segmentDist / currentSpeed; // Dynamic Speed
+                
+                totalDist += segmentDist;
+                cumulativeTime += segmentTime;
+
+                drawPath(pathObj, 'route-line-multi');
+                
+                addLogItem(loc2.name, cumulativeTime, segmentDist);
+                highlightMultiPoint(p2, i+2);
+            }
+        }
+
+        document.getElementById('multiDistance').textContent = Math.round(totalDist) + " m";
+    }
+
+    function addLogItem(name, totalSeconds, segmentDist){
+        const li = document.createElement('li'); li.className = 'log-item';
+        const timeStr = formatMinSec(totalSeconds);
+        const distStr = segmentDist > 0 ? `(+${Math.round(segmentDist)}m)` : 'Start';
+        li.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-name">${name} <span style="font-size:0.6rem; color:#666;">${distStr}</span></span>`;
+        multiLogList.appendChild(li);
+    }
+
+    function highlightMultiPoint(id, index){
+        const el = document.querySelector(`.point-container[data-id="${id}"]`);
+        if(el){
+            el.classList.add('multi-selected');
+            const badge = el.querySelector('.point-badge'); badge.textContent = index; badge.style.display = 'flex';
+        }
+    }
+
+    function showLocationDetails(id){
+      const loc = locations.find(l => l.id === id); if(!loc) return;
+      infoPanel.classList.add('visible');
+      document.getElementById('locTitle').textContent = loc.name;
+      document.getElementById('locDesc').textContent = loc.desc;
+      document.getElementById('locSpecial').textContent = loc.special;
+      document.getElementById('locHide').textContent = loc.hide;
+      
+      const kellerBtn = document.getElementById('btnKeller');
+      if(loc.hasZoom){
+          zoomBtn.style.display = 'block'; state.selectedZoomId = id;
+          if(id === 'manege') kellerBtn.style.display = 'block'; else kellerBtn.style.display = 'none';
+      } else {
+          zoomBtn.style.display = 'none'; state.selectedZoomId = null;
+      }
+    }
+
+    function selectStart(id){
+      state.start = id; const loc = locations.find(l=>l.id===id);
+      instrEl.innerHTML = `Start: <b style="color:var(--accent-gold)">${loc.name}</b>. Wähle Ziel...`;
+    }
+
+    function selectEnd(id){
+      state.end = id; instrEl.innerHTML = `Analyse & Route berechnet.`; calculateAndDraw();
+    }
+
+    function resetMap(){
+      resetMapOnly(); infoPanel.classList.remove('visible'); zoomOverlay.classList.remove('active');
+      // Reset Slider
+      speedSlider.value = 1.4; currentSpeed = 1.4; updateSpeedText(1.4);
+    }
+
+    function resetMapOnly(){
+      state.start = null; state.end = null; state.multiRoute = [];
+      document.querySelectorAll('.point-container').forEach(p => {
+          p.classList.remove('selected'); p.classList.remove('multi-selected'); p.querySelector('.point-badge').style.display = 'none';
+      });
+      svgAnalysis.innerHTML = ''; svgRoute.innerHTML = '';
+      boxEl.classList.remove('active'); multiBoxEl.style.display = 'none';
+      instrEl.textContent = "Bitte Ort auswählen...";
+      routeInfoBlock.style.display = 'none'; document.getElementById('resDistance').textContent = "0 m";
+    }
+
+    function highlightPoint(id){
+      document.querySelectorAll('.point-container').forEach(p => p.classList.remove('selected'));
+      if(state.start) document.querySelector(`.point-container[data-id="${state.start}"]`)?.classList.add('selected');
+      if(state.end) document.querySelector(`.point-container[data-id="${state.end}"]`)?.classList.add('selected');
+    }
+
+    function calculateAndDraw(){
+      const locA = locations.find(l => l.id === state.start); const locB = locations.find(l => l.id === state.end);
+      if(!locA || !locB) return;
+      multiBoxEl.style.display = 'none';
+
+      const dx = locA.x - locB.x; const dy = locA.y - locB.y;
+      const unitDist = Math.sqrt(dx*dx + dy*dy); const realDist = Math.round(unitDist * METERS_PER_UNIT);
+      document.getElementById('resDistance').textContent = realDist + " m";
+
+      svgAnalysis.innerHTML = ''; const lineAir = createSvgLine(locA, locB, "line-air"); svgAnalysis.appendChild(lineAir);
+
+      if(document.getElementById('checkSight').checked){
+        let sight = checkLineOfSight(locA, locB);
+        if(sight.class === 'clear') {
+            if(realDist > 200) { sight = { class: "blocked", text: "UNKLAR (ZU WEIT)", obstacle: "> 200m" }; } 
+            else if (realDist > 150) { sight = { class: "covered", text: "VERSCHWOMMEN", obstacle: "> 150m" }; }
+        }
+        const lineSight = createSvgLine(locA, locB, "line-sight " + sight.class); svgAnalysis.appendChild(lineSight);
+        document.getElementById('sightRow').style.display = 'block';
+        document.getElementById('resSightBadge').className = 'badge ' + sight.class;
+        document.getElementById('resSightBadge').textContent = sight.text;
+        document.getElementById('resSightReason').textContent = sight.obstacle ? `Blockiert durch: ${sight.obstacle}` : "Keine Hindernisse";
+      } else { document.getElementById('sightRow').style.display = 'none'; }
+
+      svgRoute.innerHTML = '';
+      if(document.getElementById('checkRoute').checked){ calculateRoutes(state.start, state.end); routeInfoBlock.style.display = 'block'; } 
+      else { routeInfoBlock.style.display = 'none'; }
+
+      document.getElementById('resConnection').innerHTML = `${locA.name} &rarr; ${locB.name}`; boxEl.classList.add('active');
+    }
+
+    function calculateRoutes(startId, endId){
+      const path1 = dijkstra(startId, endId, []);
+      drawPath(path1, 'route-line-fast');
+      displayTime(path1, 'timeFast', 'wpFast');
+
+      let penaltyEdges = [];
+      if(path1 && path1.path.length > 1){
+        for(let i=0; i<path1.path.length-1; i++){
+          penaltyEdges.push(path1.path[i] + "-" + path1.path[i+1]);
+          penaltyEdges.push(path1.path[i+1] + "-" + path1.path[i]);
+        }
+      }
+      const path2 = dijkstra(startId, endId, penaltyEdges);
+      if(path2 && path1 && JSON.stringify(path2.path) !== JSON.stringify(path1.path)){
+         drawPath(path2, 'route-line-secret'); displayTime(path2, 'timeSec', 'wpSec');
+      } else {
+         document.getElementById('timeSec').textContent = "Keine Alternative";
+         document.getElementById('wpSec').innerHTML = "";
+      }
+    }
+
+    function displayTime(pathObj, timeId, wpId){
+        if(!pathObj) return;
+        const meters = pathObj.cost * METERS_PER_UNIT; 
+        const seconds = meters / currentSpeed; // Dynamic Speed
+        
+        document.getElementById(timeId).textContent = formatMinSec(seconds);
+        const names = pathObj.path.map(pid => locations.find(l=>l.id===pid).name);
+        document.getElementById(wpId).innerHTML = "Via: " + names.join(" &rarr; ");
+    }
+
+    function formatMinSec(totalSeconds){
+        let s = Math.round(totalSeconds); 
+        let m = Math.floor(s / 60); let remS = s % 60;
+        return `${m}:${remS.toString().padStart(2, '0')} min`;
+    }
+
+    function dijkstra(start, end, penalties){
+      let costs = {}; let prev = {}; let queue = [];
+      locations.forEach(l => { costs[l.id] = Infinity; prev[l.id] = null; queue.push(l.id); });
+      costs[start] = 0;
+      while(queue.length > 0){
+        queue.sort((a,b) => costs[a] - costs[b]); let u = queue.shift();
+        if(u === end) break; if(costs[u] === Infinity) continue;
+        let neighbors = graph[u] || [];
+        neighbors.forEach(neighborObj => {
+           let v = neighborObj.node;
+           if(queue.includes(v)){
+             let weight = neighborObj.weight;
+             if(penalties.includes(u + "-" + v)) weight *= 5; 
+             let alt = costs[u] + weight; if(alt < costs[v]){ costs[v] = alt; prev[v] = u; }
+           }
+        });
+      }
+      let path = []; let curr = end; if(costs[end] === Infinity) return null;
+      while(curr !== null){ path.unshift(curr); curr = prev[curr]; }
+      return { path: path, cost: costs[end] };
+    }
+
+    function drawPath(pathObj, cssClass){
+      if(!pathObj) return;
+      const nodes = pathObj.path;
+      for(let i=0; i<nodes.length-1; i++){
+        const p1 = locations.find(l=>l.id===nodes[i]); const p2 = locations.find(l=>l.id===nodes[i+1]);
+        if(p1 && p2){
+          const line = createSvgLine(p1, p2, cssClass); svgRoute.appendChild(line);
+        }
+      }
+    }
+
+    function createSvgLine(p1, p2, cssClass){
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", p1.x + "%"); line.setAttribute("y1", p1.y + "%");
+      line.setAttribute("x2", p2.x + "%"); line.setAttribute("y2", p2.y + "%");
+      line.setAttribute("class", cssClass); return line;
+    }
+
+    function checkLineOfSight(p1, p2){
+      if((p1.id==='tech' && p2.id==='dir') || (p1.id==='dir' && p2.id==='tech')) return { class: "covered", text: "EINGESCHRÄNKT", obstacle: "Plane (Sehschlitz)" };
+      if((p1.id==='hof' && p2.id==='dir') || (p1.id==='dir' && p2.id==='hof')) return { class: "covered", text: "EINGESCHRÄNKT", obstacle: "Kistenstapel" };
+      let result = { class: "clear", text: "FREIE SICHT", obstacle: null };
+      for(let ob of obstacles){
+        if(intersectLineRect(p1, p2, ob)){
+          if(ob.type === 'solid'){ return { class: "blocked", text: "KEINE SICHT", obstacle: ob.label }; } 
+          else { result = { class: "covered", text: "EINGESCHRÄNKT", obstacle: ob.label }; }
+        }
+      }
+      return result;
+    }
+
+    function intersectLineRect(p1, p2, rect){
+      const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y; const rx = rect.x, ry = rect.y, rw = rect.w, rh = rect.h;
+      if((x1 > rx && x1 < rx+rw && y1 > ry && y1 < ry+rh) || (x2 > rx && x2 < rx+rw && y2 > ry && y2 < ry+rh)) return false;
+      let t0 = 0, t1 = 1; const dx = x2 - x1, dy = y2 - y1; const p = [-dx, dx, -dy, dy]; const q = [x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1];
+      for(let i=0; i<4; i++){
+        if(p[i] === 0){ if(q[i] < 0) return false; } else {
+          const t = q[i] / p[i]; if(p[i] < 0){ if(t > t1) return false; if(t > t0) t0 = t; } else { if(t < t0) return false; if(t < t1) t1 = t; }
+        }
+      }
+      return t0 < t1;
+    }
+
+    function openZoomCurrent(){
+        if(state.selectedZoomId === 'wohnwagen'){
+            document.getElementById('scene-wohnwagen').style.display = 'block';
+            document.getElementById('scene-manege').style.display = 'none';
+            document.getElementById('scene-keller').style.display = 'none';
+            document.getElementById('zoomTitle').textContent = "Detailansicht: Wohnwagen";
+        } else if(state.selectedZoomId === 'manege'){
+            document.getElementById('scene-wohnwagen').style.display = 'none';
+            document.getElementById('scene-manege').style.display = 'flex';
+            document.getElementById('scene-keller').style.display = 'none';
+            document.getElementById('zoomTitle').textContent = "Querschnitt: Manege";
+        }
+        zoomOverlay.classList.add('active');
+    }
+    function openZoomKeller(){
+        document.getElementById('scene-wohnwagen').style.display = 'none';
+        document.getElementById('scene-manege').style.display = 'none';
+        document.getElementById('scene-keller').style.display = 'flex';
+        document.getElementById('zoomTitle').textContent = "Untergrund: Manege";
+        zoomOverlay.classList.add('active');
+    }
+    function closeZoom(){ zoomOverlay.classList.remove('active'); }
+
+    // Event Listeners for toggles
+    document.getElementById('checkSight').addEventListener('change', () => { 
+        if(!document.getElementById('checkMultiRoute').checked && state.start && state.end) calculateAndDraw(); 
+    });
+    document.getElementById('checkRoute').addEventListener('change', () => { 
+        if(!document.getElementById('checkMultiRoute').checked && state.start && state.end) calculateAndDraw(); 
+    });
+    
+    // Switch between modes
+    document.getElementById('checkMultiRoute').addEventListener('change', (e) => {
+        resetMapOnly();
+        if(e.target.checked){
+            instrEl.innerHTML = "Eigene Route: Klicke nacheinander auf Orte.";
+            document.getElementById('checkRoute').disabled = true;
+            document.getElementById('checkRoute').parentElement.style.opacity = '0.5';
+        } else {
+            document.getElementById('checkRoute').disabled = false;
+            document.getElementById('checkRoute').parentElement.style.opacity = '1';
+        }
+    });
+
+    init();
+  </script>
+</body>
+</html>
