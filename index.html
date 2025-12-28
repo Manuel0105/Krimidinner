@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zirkus Map - Gold Edition V4 (Full Content)</title>
+  <title>Zirkus Map - Alive V6 (All Animations)</title>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -45,6 +45,19 @@
       pointer-events: none;
       z-index: 9999;
     }
+
+    /* --- ANIMATIONEN DEFINITIONEN --- */
+    @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulseTech { 0% { box-shadow: 0 0 2px #4a6fa5; } 50% { box-shadow: 0 0 12px #4a6fa5; border-color: #8ab4f8; } 100% { box-shadow: 0 0 2px #4a6fa5; } }
+    @keyframes toxicFumes { 0% { box-shadow: 0 0 2px #5d8aa8; } 50% { box-shadow: 0 0 15px #2e8b57; transform: rotate(45deg) scale(1.1); } 100% { box-shadow: 0 0 2px #5d8aa8; transform: rotate(45deg) scale(1.0); } }
+    @keyframes heartbeat { 0% { transform: rotate(45deg) scale(1); } 15% { transform: rotate(45deg) scale(1.15); } 30% { transform: rotate(45deg) scale(1); } 45% { transform: rotate(45deg) scale(1.15); } 100% { transform: rotate(45deg) scale(1); } }
+    @keyframes vibrateHigh { 0% { transform: translate(0,0) rotate(45deg); } 20% { transform: translate(-1px, 1px) rotate(45deg); } 40% { transform: translate(-1px, -1px) rotate(45deg); } 60% { transform: translate(1px, 1px) rotate(45deg); } 80% { transform: translate(1px, -1px) rotate(45deg); } 100% { transform: translate(0,0) rotate(45deg); } }
+    @keyframes goldShine { 0% { border-color: var(--accent-gold); box-shadow: 0 0 5px var(--accent-gold); } 50% { border-color: #fff; box-shadow: 0 0 20px var(--accent-gold); } 100% { border-color: var(--accent-gold); box-shadow: 0 0 5px var(--accent-gold); } }
+    @keyframes wobbleSick { 0% { transform: rotate(40deg); } 50% { transform: rotate(50deg); } 100% { transform: rotate(40deg); } }
+    @keyframes flashBling { 0% { opacity: 0.7; } 50% { opacity: 1; border-color: #fff; box-shadow: 0 0 10px #fff; } 100% { opacity: 0.7; } }
+    @keyframes glitch { 0% { transform: translate(0) rotate(45deg); } 2% { transform: translate(2px,0) rotate(45deg); } 4% { transform: translate(0) rotate(45deg); } 100% { transform: translate(0) rotate(45deg); } }
+    @keyframes sway { 0% { transform: rotate(42deg); } 50% { transform: rotate(48deg); } 100% { transform: rotate(42deg); } }
+    @keyframes twitch { 0% { transform: rotate(45deg); } 90% { transform: rotate(45deg); } 92% { transform: rotate(55deg); } 94% { transform: rotate(35deg); } 100% { transform: rotate(45deg); } }
 
     /* --- HEADER --- */
     header {
@@ -159,14 +172,14 @@
       background: rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; pointer-events: none;
     }
     
-    /* PUNKTE */
+    /* PUNKTE & MARKER */
     .point-container {
       position: absolute; transform: translate(-50%, -50%); z-index: 10;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       width: 60px; height: 60px;
     }
     .point-container[data-id="kreuzung"] .point-marker {
-      width: 10px; height: 10px; border-radius: 50%; transform: none; background: #444; border-color: #666;
+      width: 10px; height: 10px; border-radius: 50%; transform: none; background: #444; border-color: #666; animation: none !important;
     }
     .point-container[data-id="kreuzung"] .point-label { font-size: 0.6rem; opacity: 0.7; }
 
@@ -175,23 +188,95 @@
       border: 2px solid var(--accent-gold); transform: rotate(45deg);
       box-shadow: 0 0 10px rgba(0,0,0,0.8); transition: all 0.2s ease; margin-bottom: 6px;
     }
+    
+    /* --- INDIVIDUELLE ORTS-EFFEKTE (DIE MAGIC-SECTION) --- */
+    
+    /* 1. RIESENRAD (Dreht sich) */
+    .point-container[data-id="riesen"] .point-marker {
+        border-radius: 50%; border: 2px dashed var(--accent-gold); background: transparent;
+        animation: spinSlow 12s linear infinite; width: 18px; height: 18px;
+    }
+    
+    /* 2. TECH-ZELT (Pulsiert Blau) */
+    .point-container[data-id="tech"] .point-marker {
+        border-color: #4a6fa5; animation: pulseTech 2s ease-in-out infinite;
+    }
+    
+    /* 3. MÜLLPLATZ (Giftige Dämpfe) */
+    .point-container[data-id="muell"] .point-marker {
+        border-color: #556b2f; animation: toxicFumes 5s ease-in-out infinite;
+    }
+    
+    /* 4. MANEGE (Herzschlag) */
+    .point-container[data-id="manege"] .point-marker {
+        border-color: var(--accent-red); background: #300;
+        animation: heartbeat 1.2s ease-in-out infinite;
+    }
+    
+    /* 5. KÜCHE (Vibriert schnell - Hitze/Motor) */
+    .point-container[data-id="kueche"] .point-marker {
+        animation: vibrateHigh 0.2s linear infinite;
+    }
+    
+    /* 6. DIREKTION (Goldener Schimmer) */
+    .point-container[data-id="dir"] .point-marker {
+        animation: goldShine 4s ease-in-out infinite;
+    }
+    
+    /* 7. WC (Übles Wanken) */
+    .point-container[data-id="wc"] .point-marker {
+        border-color: #8b8000;
+        animation: wobbleSick 3s ease-in-out infinite;
+    }
+    
+    /* 8. FOYER (Blinkende Reklame) */
+    .point-container[data-id="foyer"] .point-marker {
+        animation: flashBling 0.8s steps(2, start) infinite;
+    }
+    
+    /* 9. PARKEN (Glitch/Kaputt) */
+    .point-container[data-id="parken"] .point-marker {
+        animation: glitch 3s infinite;
+    }
+    
+    /* 10. WOHNWAGEN (Sanftes Schaukeln) */
+    .point-container[data-id="wohnwagen"] .point-marker {
+        animation: sway 4s ease-in-out infinite;
+    }
+
+    /* 11. BACKSTAGE (Nervöses Zucken) */
+    .point-container[data-id="back"] .point-marker {
+        animation: twitch 5s linear infinite;
+    }
+
+    /* Hover stoppt Animation für bessere Klickbarkeit, außer bei Riesenrad */
+    .point-container:hover .point-marker { 
+        background: var(--accent-gold); 
+        transform: rotate(45deg) scale(1.3);
+        animation: none; 
+        border-color: var(--accent-gold);
+    }
+    .point-container[data-id="riesen"]:hover .point-marker {
+        animation-play-state: paused; transform: scale(1.3); background: var(--accent-gold);
+    }
+
+    /* LABELS */
     .point-label {
       font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);
       background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; white-space: nowrap;
       border: 1px solid transparent; transition: all 0.2s;
     }
-    .point-container:hover .point-marker { background: var(--accent-gold); transform: rotate(45deg) scale(1.3); }
     .point-container:hover .point-label { color: var(--text-light); border-color: rgba(201,169,98,0.3); background: rgba(0,0,0,0.9); }
     .point-container.selected .point-marker {
       background: var(--accent-red); border-color: var(--text-light);
-      transform: rotate(45deg) scale(1.2); box-shadow: 0 0 10px var(--accent-red);
+      transform: rotate(45deg) scale(1.2); box-shadow: 0 0 10px var(--accent-red); animation: none;
     }
-    .point-container.multi-selected .point-marker { background: #fff; box-shadow: 0 0 10px #fff; }
+    .point-container.multi-selected .point-marker { background: #fff; box-shadow: 0 0 10px #fff; animation: none; }
     .point-container.multi-selected .point-label { color: #fff; }
     .point-badge {
         position: absolute; top: -5px; right: 15px; background: var(--accent-red); color: white;
         font-family: 'JetBrains Mono'; font-size: 0.6rem; width: 16px; height: 16px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; box-shadow: 1px 1px 3px black;
+        display: flex; align-items: center; justify-content: center; box-shadow: 1px 1px 3px black; z-index: 12;
     }
 
     /* ZOOM OVERLAY */
@@ -336,46 +421,16 @@
         <div id="scene-manege" style="display:none; width:100%; height:100%;">
             <div class="svg-detail-container">
               <svg class="detail-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
-                
-                <defs>
-                  <pattern id="seatPattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <line x1="0" y1="0" x2="0" y2="8" stroke="#333" stroke-width="2" />
-                  </pattern>
-                </defs>
-
+                <defs><pattern id="seatPattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#333" stroke-width="2" /></pattern></defs>
                 <rect x="50" y="50" width="700" height="400" rx="10" fill="rgba(20, 20, 20, 0.9)" stroke="#c9a962" stroke-width="3" />
-
-                <rect x="350" y="40" width="100" height="20" fill="#1a1612" /> 
-                <path d="M 350,50 L 350,30 M 450,50 L 450,30" stroke="#c9a962" stroke-width="2"/>
-                <text x="400" y="45" class="svg-door-label">ZUGANG BACKSTAGE</text>
-                
-                <rect x="350" y="440" width="100" height="20" fill="#1a1612" />
-                <path d="M 350,450 L 350,470 M 450,450 L 450,470" stroke="#c9a962" stroke-width="2"/>
-                <text x="400" y="465" class="svg-door-label">EINGANG</text>
-
-                <rect x="40" y="230" width="20" height="40" fill="#1a1612" />
-                <path d="M 50,230 L 30,230 M 50,270 L 30,270" stroke="#c9a962" stroke-width="2"/>
-                <text x="35" y="255" class="svg-door-label" text-anchor="end" style="font-size:9px;">EXIT</text>
-
-                <rect x="740" y="230" width="20" height="40" fill="#1a1612" />
-                <path d="M 750,230 L 770,230 M 750,270 L 770,270" stroke="#c9a962" stroke-width="2"/>
-                <text x="765" y="255" class="svg-door-label" text-anchor="start" style="font-size:9px;">EXIT</text>
-
-                <circle cx="400" cy="250" r="90" fill="none" stroke="#8b2635" stroke-width="3" stroke-dasharray="8,4" />
-                <text x="400" y="255" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="20">MANEGE</text>
-
-                <path d="M 120,120 H 220 Q 280,250 220,380 H 120 V 120 Z" 
-                      fill="url(#seatPattern)" stroke="#555" stroke-width="2" />
-                <text x="170" y="250" fill="#888" transform="rotate(-90, 170, 250)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
-
-                <path d="M 680,120 H 580 Q 520,220 580,320 H 680 V 120 Z" 
-                      fill="url(#seatPattern)" stroke="#555" stroke-width="2" />
-                <text x="630" y="220" fill="#888" transform="rotate(90, 630, 220)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
-
-                <rect x="620" y="350" width="110" height="90" fill="rgba(139, 38, 53, 0.1)" stroke="#8b2635" stroke-width="2" />
-                <text x="675" y="380" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="12" font-weight="bold">BÜRO</text>
-                <text x="675" y="395" fill="#888" text-anchor="middle" font-family="JetBrains Mono" font-size="9">VERRAMMELT</text>
-
+                <rect x="350" y="40" width="100" height="20" fill="#1a1612" /> <path d="M 350,50 L 350,30 M 450,50 L 450,30" stroke="#c9a962" stroke-width="2"/><text x="400" y="45" class="svg-door-label">ZUGANG BACKSTAGE</text>
+                <rect x="350" y="440" width="100" height="20" fill="#1a1612" /><path d="M 350,450 L 350,470 M 450,450 L 450,470" stroke="#c9a962" stroke-width="2"/><text x="400" y="465" class="svg-door-label">EINGANG</text>
+                <rect x="40" y="230" width="20" height="40" fill="#1a1612" /><path d="M 50,230 L 30,230 M 50,270 L 30,270" stroke="#c9a962" stroke-width="2"/><text x="35" y="255" class="svg-door-label" text-anchor="end" style="font-size:9px;">EXIT</text>
+                <rect x="740" y="230" width="20" height="40" fill="#1a1612" /><path d="M 750,230 L 770,230 M 750,270 L 770,270" stroke="#c9a962" stroke-width="2"/><text x="765" y="255" class="svg-door-label" text-anchor="start" style="font-size:9px;">EXIT</text>
+                <circle cx="400" cy="250" r="90" fill="none" stroke="#8b2635" stroke-width="3" stroke-dasharray="8,4" /><text x="400" y="255" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="20">MANEGE</text>
+                <path d="M 120,120 H 220 Q 280,250 220,380 H 120 V 120 Z" fill="url(#seatPattern)" stroke="#555" stroke-width="2" /><text x="170" y="250" fill="#888" transform="rotate(-90, 170, 250)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
+                <path d="M 680,120 H 580 Q 520,220 580,320 H 680 V 120 Z" fill="url(#seatPattern)" stroke="#555" stroke-width="2" /><text x="630" y="220" fill="#888" transform="rotate(90, 630, 220)" text-anchor="middle" font-family="JetBrains Mono" font-size="14">TRIBÜNE</text>
+                <rect x="620" y="350" width="110" height="90" fill="rgba(139, 38, 53, 0.1)" stroke="#8b2635" stroke-width="2" /><text x="675" y="380" fill="#8b2635" text-anchor="middle" font-family="Cinzel" font-size="12" font-weight="bold">BÜRO</text><text x="675" y="395" fill="#888" text-anchor="middle" font-family="JetBrains Mono" font-size="9">VERRAMMELT</text>
               </svg>
             </div>
         </div>
@@ -502,16 +557,16 @@
     const locations = [
       { id:"parken", name:"Parken", x:15, y:85, desc: "Ein Friedhof für Träume und TÜV-Plaketten. Der Schotter ist so ölgetränkt, dass man hier nicht rauchen sollte. Valentins Carport steht hier wie ein Mahnmal des Egoismus: Das einzige Dach weit und breit.", special: "Kaputte Bremsleitungen, Zigarettenstummel (Marke 'Stress'), Ölflecken in Form von schlechten Omen.", hide: "Unter Autos (Vorsicht: Es tropft) oder im Schatten des Carports.", hasZoom:false },
       { id:"wohnwagen", name:"Wohnwagen", x:50, y:85, desc: "Die 'Sardinenbüchsen-Allee'. Hier stapeln sich Neurosen auf engstem Raum. Die Wände sind so dünn, dass man hört, wenn der Nachbar seine Meinung ändert.", special: "Siehe Detailkarte für die Bewohner-Profile.", hide: "Unter den Wägen im Matsch.", hasZoom: true },
-      { id:"hinter", name:"Hintereingang", x:85, y:80, desc: "Der unglamouröse Hintern des Zirkus. Ein verrostetes Tor, das quietscht wie eine sterbende Katze. Hier wächst Unkraut über Dinge, die keiner sehen soll.", special: "Spuren von nächtlichen Drohnen-Lieferungen (in dieser Welt das Amazon-Prime), weggeworfene Aluhut-Reste.", hide: "Hinterm Müllcontainer-Zaun oder im hohen Brennnessel-Gestrüpp.", hasZoom:false },
+      { id:"hinter", name:"Hintereingang", x:85, y:80, desc: "Der unglamouröse Hintern des Zirkus. Ein verrostetes Tor, das quietscht wie eine sterbende Katze. Hier wächst Unkraut über Dinge, die keiner sehen soll.", special: "Spuren von nächtlichen Drohnen-Lieferungen (Betäubungsmittel?), weggeworfene Aluhut-Reste.", hide: "Hinterm Müllcontainer-Zaun oder im hohen Brennnessel-Gestrüpp.", hasZoom:false },
       { id:"kueche", name:"Küche", x:20, y:65, desc: "Die Edelstahl-Hölle. Es riecht penetrant nach altem Fett und verbranntem Zucker. Der 'Zucker-Zyklon' (Zuckerwattemaschine) hat ein Eigenleben und vibriert bedrohlich.", special: "Ein halb gegessener Döner, ein überhitzter Motor, klebrige Oberflächen.", hide: "Hinter der brummenden Zuckerwatte-Maschine.", hasZoom:false },
       { id:"hof", name:"Hof", x:25, y:55, desc: "Das schlammige Herz der Finsternis. Ein Labyrinth aus Paletten, die irgendwann mal irgendwohin sollten. Wer hier stolpert, landet im Matsch oder in einer Intrige.", special: "Herrenlose Kisten mit Seriennummern, die Saphira noch nicht notiert hat.", hide: "Hinter wackeligen Kistenstapeln (Gute Sicht auf Dir.Wagen).", hasZoom:false },
       { id:"dir", name:"Dir.Wagen", x:10, y:55, desc: "Der Elfenbeinturm auf Rädern. Samtvorhänge, dicke Teppiche und der Geruch von billigem Parfum, das teuer wirken soll. Valentins Reich.", special: "Ein verschlossener Safe, teure Deko, vertrauliche Akten. Das riesige Fenster ist praktisch eine Einladung für Spanner.", hide: "Unter dem massiven Eichenschreibtisch.", hasZoom:false },
       { id:"riesen", name:"Riesenrad", x:60, y:60, desc: "Ein rostiges Denkmal der Fahrlässigkeit. Es dreht sich nur, wenn der Wind günstig steht oder man dagegen tritt. Jede Schraube ist ein Glücksspiel.", special: "Lockere Bolzen, eine vergessene Werkzeugkiste von Jasper.", hide: "In den schaukelnden Gondeln (Achtung: Seekrankheit).", hasZoom:false },
-      { id:"muell", name:"Müllplatz", x:85, y:60, desc: "Der ehrlichste Ort hier. Es stinkt zum Himmel nach Verwesung und geplatzten Träumen. Die Ratten hier sind die einzigen, die satt werden.", special: "Zerrissene Briefe, leere Flaschen (Pfirsich-Eistee & Alkohol), die 'Smaragd Banane'.", hide: "Hinter den Müllcontainern. Wenns hart auf hart kommt: IN den Containern (nur für Hartgesottene).", hasZoom:false },
+      { id:"muell", name:"Müllplatz", x:85, y:60, desc: "Der ehrlichste Ort hier. Es stinkt zum Himmel nach Verwesung und geplatzten Träumen. Die Ratten hier sind die einzigen, die satt werden.", special: "Zerrissene Briefe, leere Flaschen (Pfirsich-Eistee & Alkohol), die 'Smaragd Banane'.", hide: "IN den Containern (nur für Hartgesottene).", hasZoom:false },
       { id:"foyer", name:"Foyer", x:50, y:45, desc: "Die Glitzer-Fassade. Kassenhäuschen mit vergilbten 'Ausverkauft'-Schildern, obwohl nie ausverkauft ist. Damians Jagdrevier.", special: "Gezinkte Karten, Hütchenspieler-Equipment, Zettel von Chantal.", hide: "Hinter dem engen Kassentresen.", hasZoom:false },
-      { id:"wc", name:"WC", x:70, y:45, desc: "Der Toilettenwagen des Grauens. Graffiti an den Wänden erzählen traurigere Geschichten als die Show. Es riecht nach Chemie und Verzweiflung.", special: "Tränen-Taschentücher. Was anderes findet man hier kaum.", hide: "Kabine 3 (die einzige, die abschließt).", hasZoom:false },
-      { id:"tech", name:"Tech-Zelt", x:30, y:35, desc: "Die Nerd-Höhle. Dunkel, warm, blinkende Lichter und das Summen überhitzter Server. Maliks Königreich, das er nie (naja, fast nie) verlässt.", special: "Ein illegaler Sehschlitz in der Plane (Richtung Direktion), leere Pizza-Kartons.", hide: "Zwischen den heißen Server-Racks.", hasZoom:false },
-      { id:"manege", name:"Manege", x:50, y:25, desc: "Das große Zelt. Abends Show, nachts bis früh morgens ein riesiges, hallendes Grab. Es riecht nach Sägespänen und Angstschweiß.", special: "Siehe Detailkarte (Eingänge, Büro). Extra Keller-Ansicht verfügbar!", hide: "Hinter dem schweren Samtvorhang.", hasZoom: true },
+      { id:"wc", name:"WC", x:70, y:45, desc: "Der Toilettenwagen des Grauens. Graffiti an den Wänden erzählen traurigere Geschichten als die Show. Es riecht nach Chemie und Verzweiflung.", special: "Eine Puppe, die jemand auf dem Spülkasten vergessen hat. Tränen-Taschentücher.", hide: "Kabine 3 (die einzige, die abschließt).", hasZoom:false },
+      { id:"tech", name:"Tech-Zelt", x:30, y:35, desc: "Die Nerd-Höhle. Dunkel, warm, blinkende Lichter und das Summen überhitzter Server. Maliks Königreich, das er nie verlässt.", special: "Ein illegaler Sehschlitz in der Plane (Richtung Direktion), leere Pizza-Kartons.", hide: "Zwischen den heißen Server-Racks.", hasZoom:false },
+      { id:"manege", name:"Manege", x:50, y:25, desc: "Das große Zelt. Tagsüber Show, nachts ein riesiges, hallendes Grab. Es riecht nach Sägespänen und Angstschweiß.", special: "Siehe Detailkarte (Eingänge, Büro). Extra Keller-Ansicht verfügbar!", hide: "Hinter dem schweren Samtvorhang.", hasZoom: true },
       { id:"back", name:"Backstage", x:50, y:12, desc: "Das Chaos hinter dem Vorhang. Schminke, Pailletten und Hektik. Ein Minenfeld aus Requisiten.", special: "Potenzielle Mordwaffen (Seile, Stangen), Saphiras Tasche (wenn sie nicht da ist).", hide: "Zwischen den staubigen Kostümständern.", hasZoom:false },
       { id:"kreuzung", name:"Wegkreuzung", x:50, y:60, desc: "Eine unscheinbare Gabelung im Matsch. Hier kreuzen sich Wege und Blicke. Strategisch wichtig, aber null Deckung.", special: "Fußspuren in alle Richtungen.", hide: "Keine Deckung. Du bist auf dem Präsentierteller.", hasZoom:false },
     ];
